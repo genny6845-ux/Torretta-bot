@@ -1,40 +1,34 @@
 from flask import Flask
 import threading
 import requests
+import time
 from telegram import Bot
+import asyncio
 
-# Dummy Flask app per Render
 app = Flask(__name__)
 
-# Inserisci il tuo token e chat_id
-TOKEN = "INSERISCI_IL_TUO_TOKEN"
-CHAT_ID = "INSERISCI_IL_TUO_CHAT_ID"
+# Token e chat_id presi dalle variabili d’ambiente di Railway
+import os
+TOKEN = os.getenv("Token")
+CHAT_ID = os.getenv("Chat_id")
 
 bot = Bot(token=TOKEN)
 
-def send_alert(message):
-    bot.send_message(chat_id=CHAT_ID, text=message)
-
-def check_portfolio():
-    # Simulazione: qui puoi aggiungere la logica vera
-    profitto = 750  # esempio statico
-    if profitto >= 500:
-        send_alert(f"🚀 Profitto raggiunto: {profitto}$!")
-    else:
-        send_alert(f"📉 Profitto attuale: {profitto}$")
+async def send_alert(message):
+    await bot.send_message(chat_id=CHAT_ID, text=message)
 
 def start_bot():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     while True:
-        check_portfolio()
-        # Aspetta 10 minuti prima del prossimo controllo
-        time.sleep(600)
+        loop.run_until_complete(send_alert("🚨 Torretta attiva!"))
+        time.sleep(600)  # ogni 10 minuti
 
-# Avvia il bot in un thread separato
-threading.Thread(target=start_bot).start()
+@app.route("/")
+def index():
+    return "Bot attivo e pronto! 🚀"
 
-@app.route('/')
-def home():
-    return "Torretta Bot is running!"
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+if __name__ == "__main__":
+    t = threading.Thread(target=start_bot)
+    t.start()
+    app.run(host="0.0.0.0", port=8080)
